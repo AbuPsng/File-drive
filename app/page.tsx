@@ -6,6 +6,7 @@ import { useQuery } from "convex/react";
 import { z } from "zod";
 import UploadButton from "@/components/UploadButton";
 import FileCard from "@/components/FileCard";
+import Image from "next/image";
 
 export default function Home() {
   const organization = useOrganization();
@@ -21,16 +22,28 @@ export default function Home() {
 
   return (
     <main className="container mx-auto pt-12">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold">Your Files</h1>
-
-        <UploadButton />
-      </div>
-      <div className="grid grid-cols-4 gap-4">
-        {files?.map((file) => (
-          <FileCard key={file._id} file={file} />
+      {files &&
+        (files?.length < 1 ? (
+          <div className="flex flex-col gap-8 h-screen pt-28 w-full items-center mt-12">
+            <Image src={"empty.svg"} alt="" width={300} height={300} />
+            <div className="text-2xl ">
+              You have no files, go ahead and upload one now.
+            </div>
+            <UploadButton />
+          </div>
+        ) : (
+          <>
+            <div className="flex justify-between items-center mb-8">
+              <h1 className="text-4xl font-bold">Your Files</h1>
+              <UploadButton />
+            </div>
+            <div className="grid grid-cols-4 gap-4">
+              {files?.map((file) => (
+                <FileCard key={file._id} file={file} />
+              ))}
+            </div>
+          </>
         ))}
-      </div>
     </main>
   );
 }
