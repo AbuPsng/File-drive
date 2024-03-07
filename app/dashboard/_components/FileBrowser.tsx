@@ -46,7 +46,7 @@ export default function FileBrowser({
             <div>Loading...</div>
           </div>
         ) : files?.length < 1 ? (
-          <EmptyState />
+          <EmptyState page={title} />
         ) : (
           <>
             <div className="flex justify-between items-center mb-8">

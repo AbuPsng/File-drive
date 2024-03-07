@@ -40,6 +40,7 @@ import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useToast } from "../../../components/ui/use-toast";
 import Image from "next/image";
+import { Protect } from "@clerk/nextjs";
 
 export const FileCardDropDown = ({
   file,
@@ -69,7 +70,7 @@ export const FileCardDropDown = ({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
-                handleDeleteFile({ fileId: file._id });
+                await handleDeleteFile({ fileId: file._id });
                 toast({
                   variant: "default",
                   title: "File deleted",
@@ -104,14 +105,16 @@ export const FileCardDropDown = ({
               </>
             )}
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() => setIsConfirmOpen((val) => !val)}
-            className="flex gap-1 text-red-400 items-center cursor-pointer"
-          >
-            <TrashIcon className="h-4 w-4" />
-            Delete
-          </DropdownMenuItem>
+          <Protect role={"org:admin"} fallback={<></>}>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => setIsConfirmOpen((val) => !val)}
+              className="flex gap-1 text-red-400 items-center cursor-pointer"
+            >
+              <TrashIcon className="h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </Protect>
         </DropdownMenuContent>
       </DropdownMenu>
     </>
