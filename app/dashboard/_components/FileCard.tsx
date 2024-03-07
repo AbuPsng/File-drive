@@ -7,13 +7,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Doc, Id } from "@/convex/_generated/dataModel";
-import { Button } from "../../../../components/ui/button";
+import { Button } from "../../../components/ui/button";
 
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -23,6 +22,7 @@ import {
   ImageIcon,
   FileIcon,
   GanttChartIcon,
+  StarIcon,
 } from "lucide-react";
 
 import {
@@ -34,12 +34,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ReactNode, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useToast } from "../../../../components/ui/use-toast";
+import { useToast } from "../../../components/ui/use-toast";
 import Image from "next/image";
 
 export const FileCardDropDown = ({ file }: { file: Doc<"files"> }) => {
@@ -47,6 +46,7 @@ export const FileCardDropDown = ({ file }: { file: Doc<"files"> }) => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const handleDeleteFile = useMutation(api.files.deleteFile);
+  const handleToggleFavorite = useMutation(api.files.toggleFavorite);
 
   return (
     <>
@@ -82,13 +82,21 @@ export const FileCardDropDown = ({ file }: { file: Doc<"files"> }) => {
           <MoreVertical className="h-4 w-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent>
-          <DropdownMenuLabel
+          <DropdownMenuItem
+            onClick={() => handleToggleFavorite({ fileId: file._id })}
+            className="flex gap-1 items-center cursor-pointer"
+          >
+            <StarIcon className="h-4 w-4" />
+            Favorite
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
             onClick={() => setIsConfirmOpen((val) => !val)}
             className="flex gap-1 text-red-400 items-center cursor-pointer"
           >
             <TrashIcon className="h-4 w-4" />
             Delete
-          </DropdownMenuLabel>
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </>

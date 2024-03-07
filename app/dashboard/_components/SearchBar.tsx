@@ -16,7 +16,7 @@ import { Dispatch, SetStateAction, useState } from "react";
 import { toast, useToast } from "@/components/ui/use-toast";
 import { Loader2, SearchIcon } from "lucide-react";
 import { Doc } from "@/convex/_generated/dataModel";
-import { Button } from "../../../../components/ui/button";
+import { Button } from "../../../components/ui/button";
 
 const formSchema = z.object({
   query: z.string().min(0).max(200),
