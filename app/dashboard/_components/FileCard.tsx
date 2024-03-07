@@ -41,7 +41,13 @@ import { api } from "@/convex/_generated/api";
 import { useToast } from "../../../components/ui/use-toast";
 import Image from "next/image";
 
-export const FileCardDropDown = ({ file }: { file: Doc<"files"> }) => {
+export const FileCardDropDown = ({
+  file,
+  isFavorited,
+}: {
+  file: Doc<"files">;
+  isFavorited: boolean;
+}) => {
   const { toast } = useToast();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
@@ -86,8 +92,17 @@ export const FileCardDropDown = ({ file }: { file: Doc<"files"> }) => {
             onClick={() => handleToggleFavorite({ fileId: file._id })}
             className="flex gap-1 items-center cursor-pointer"
           >
-            <StarIcon className="h-4 w-4" />
-            Favorite
+            {isFavorited ? (
+              <>
+                <StarIcon className="h-4 w-4 text-yellow-500 font-bold" />
+                Unfavorite
+              </>
+            ) : (
+              <>
+                <StarIcon className="h-4 w-4" />
+                Favorite
+              </>
+            )}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
@@ -107,13 +122,22 @@ function getFileUrl(fileId: Id<"_storage">): string {
   return `${process.env.NEXT_PUBLIC_CONVEX_URL}/api/storage/${fileId}`;
 }
 
-const FileCard = ({ file }: { file: Doc<"files"> }) => {
+const FileCard = ({
+  file,
+  favorites,
+}: {
+  file: Doc<"files">;
+  favorites: Doc<"favorites">[];
+}) => {
   const typeIcons = {
     image: <ImageIcon />,
     pdf: <FileIcon />,
     csv: <GanttChartIcon />,
   } as Record<Doc<"files">["type"], ReactNode>;
 
+  const isFavorited = favorites.some(
+    (favorite) => favorite.fileId === file._id
+  );
   return (
     <Card>
       <CardHeader className="relative">
@@ -122,7 +146,7 @@ const FileCard = ({ file }: { file: Doc<"files"> }) => {
           {file.name}
         </CardTitle>
         <div className="absolute top-2 right-2">
-          <FileCardDropDown file={file} />
+          <FileCardDropDown isFavorited={isFavorited} file={file} />
         </div>
       </CardHeader>
       <CardContent className="h-[100px] flex justify-center">

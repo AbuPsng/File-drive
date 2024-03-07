@@ -14,17 +14,31 @@ export const generateUploadUrl = mutation(async (ctx) => {
   return await ctx.storage.generateUploadUrl();
 });
 
-async function hasAccessToOrg(
-  ctx: QueryCtx | MutationCtx,
-  tokenIdentifier: string,
-  orgId: string
-) {
-  const user = await getUser(ctx, tokenIdentifier);
+async function hasAccessToOrg(ctx: QueryCtx | MutationCtx, orgId: string) {
+  const identity = await ctx.auth.getUserIdentity();
+
+  if (!identity) {
+    return null;
+  }
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_tokenIdentifier", (q) =>
+      q.eq("tokenIdentifier", identity.tokenIdentifier)
+    )
+    .first();
+
+  if (!user) {
+    return null;
+  }
 
   const hasAccess =
     user.orgIds.includes(orgId) || user.tokenIdentifier.includes(orgId);
 
-  return hasAccess;
+  if (!hasAccess) {
+    return null;
+  }
+
+  return { user };
 }
 
 export const createFile = mutation({
@@ -35,17 +49,7 @@ export const createFile = mutation({
     type: fileTypes,
   },
   async handler(ctx, args) {
-    const identity = await ctx.auth.getUserIdentity();
-
-    if (!identity) {
-      throw new ConvexError("You must logged in to create a file");
-    }
-
-    const hasAccess = await hasAccessToOrg(
-      ctx,
-      identity?.tokenIdentifier,
-      args?.orgId
-    );
+    const hasAccess = await hasAccessToOrg(ctx, args?.orgId);
 
     if (!hasAccess) {
       throw new ConvexError("You do not have access to this organization");
@@ -64,24 +68,16 @@ export const getFiles = query({
   args: {
     orgId: v.string(),
     query: v.optional(v.string()),
-    favorites: v.optional(v.boolean()),
+    filterForFavorite: v.optional(v.boolean()),
   },
   async handler(ctx, args) {
-    const identity = await ctx.auth.getUserIdentity();
-
-    if (!identity) {
-      return [];
-    }
-
-    const hasAccess = await hasAccessToOrg(
-      ctx,
-      identity?.tokenIdentifier,
-      args?.orgId
-    );
+    const hasAccess = await hasAccessToOrg(ctx, args?.orgId);
 
     if (!hasAccess) {
       return [];
     }
+
+    const { user } = hasAccess;
 
     let files;
 
@@ -93,17 +89,12 @@ export const getFiles = query({
     const query = args.query?.toLocaleLowerCase();
 
     if (query) {
-      files.filter((file) => file.name.toLocaleLowerCase().includes(query));
+      return (files = files.filter((file) =>
+        file.name.toLocaleLowerCase().includes(query)
+      ));
     }
 
-    if (args.favorites) {
-      const user = await ctx.db
-        .query("users")
-        .withIndex("by_tokenIdentifier", (q) =>
-          q.eq("tokenIdentifier", identity.tokenIdentifier)
-        )
-        .first();
-
+    if (args.filterForFavorite) {
       if (!user) {
         return [];
       }
@@ -132,6 +123,27 @@ export const deleteFile = mutation({
       throw new ConvexError("No access to file");
     }
     await ctx.db.delete(args.fileId);
+  },
+});
+
+export const getAllFavorites = query({
+  args: { orgId: v.string() },
+  async handler(ctx, args) {
+    const hasAccess = await hasAccessToOrg(ctx, args.orgId);
+
+    if (!hasAccess) {
+      return [];
+    }
+
+    const { user } = hasAccess;
+
+    const favorites = await ctx.db
+      .query("favorites")
+      .withIndex("by_userId_orgId_fileId", (q) =>
+        q.eq("userId", user._id).eq("orgId", args.orgId)
+      )
+      .collect();
+    return favorites;
   },
 });
 
@@ -169,34 +181,19 @@ const hasAccessToFile = async (
   ctx: QueryCtx | MutationCtx,
   fileId: Id<"files">
 ) => {
-  const identity = await ctx.auth.getUserIdentity();
-
-  if (!identity) {
-    return null;
-  }
-
   const file = await ctx.db.get(fileId);
 
   if (!file) {
     return null;
   }
 
-  const hasAccess = await hasAccessToOrg(
-    ctx,
-    identity.tokenIdentifier,
-    file.orgId
-  );
+  const hasAccess = await hasAccessToOrg(ctx, file.orgId);
 
   if (!hasAccess) {
     return null;
   }
 
-  const user = await ctx.db
-    .query("users")
-    .withIndex("by_tokenIdentifier", (q) =>
-      q.eq("tokenIdentifier", identity.tokenIdentifier)
-    )
-    .first();
+  const { user } = hasAccess;
 
   if (!user) {
     return null;

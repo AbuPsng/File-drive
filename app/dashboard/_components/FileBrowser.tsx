@@ -12,10 +12,10 @@ import { Loader2 } from "lucide-react";
 
 export default function FileBrowser({
   title,
-  favorites,
+  filterForFavorite,
 }: {
   title: string;
-  favorites?: boolean;
+  filterForFavorite?: boolean;
 }) {
   const organization = useOrganization();
   const user = useUser();
@@ -30,7 +30,11 @@ export default function FileBrowser({
 
   const files = useQuery(
     api.files.getFiles,
-    orgId ? { orgId, query, favorites } : "skip"
+    orgId ? { orgId, query, filterForFavorite } : "skip"
+  );
+  const favorites = useQuery(
+    api.files.getAllFavorites,
+    orgId ? { orgId } : "skip"
   );
 
   return (
@@ -52,7 +56,11 @@ export default function FileBrowser({
             </div>
             <div className="grid grid-cols-3 gap-4">
               {files?.map((file) => (
-                <FileCard key={file._id} file={file} />
+                <FileCard
+                  favorites={favorites ?? []}
+                  key={file._id}
+                  file={file}
+                />
               ))}
             </div>
           </>

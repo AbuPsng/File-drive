@@ -5,7 +5,7 @@ import FileBrowser from "../_components/FileBrowser";
 const FavoritesPage = () => {
   return (
     <div>
-      <FileBrowser title={"Favorites"} favorites={true} />
+      <FileBrowser title={"Favorites"} filterForFavorite={true} />
     </div>
   );
 };
