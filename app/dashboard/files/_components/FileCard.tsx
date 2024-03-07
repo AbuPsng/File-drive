@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Doc, Id } from "@/convex/_generated/dataModel";
-import { Button } from "./ui/button";
+import { Button } from "../../../../components/ui/button";
 
 import {
   DropdownMenu,
@@ -39,7 +39,7 @@ import {
 import { ReactNode, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useToast } from "./ui/use-toast";
+import { useToast } from "../../../../components/ui/use-toast";
 import Image from "next/image";
 
 export const FileCardDropDown = ({ file }: { file: Doc<"files"> }) => {
