@@ -1,5 +1,11 @@
 import { ConvexError, v } from "convex/values";
-import { MutationCtx, QueryCtx, mutation, query } from "./_generated/server";
+import {
+  MutationCtx,
+  QueryCtx,
+  internalMutation,
+  mutation,
+  query,
+} from "./_generated/server";
 import { getUser } from "./users";
 import { fileTypes } from "./schema";
 import { Id } from "./_generated/dataModel";
@@ -20,6 +26,7 @@ async function hasAccessToOrg(ctx: QueryCtx | MutationCtx, orgId: string) {
   if (!identity) {
     return null;
   }
+
   const user = await ctx.db
     .query("users")
     .withIndex("by_tokenIdentifier", (q) =>
@@ -61,6 +68,7 @@ export const createFile = mutation({
       orgId: args.orgId,
       fileId: args.fileId,
       type: args.type,
+      userId: hasAccess.user._id,
     });
   },
 });
@@ -70,6 +78,7 @@ export const getFiles = query({
     orgId: v.string(),
     query: v.optional(v.string()),
     filterForFavorite: v.optional(v.boolean()),
+    deleteOnly: v.optional(v.boolean()),
   },
   async handler(ctx, args) {
     const hasAccess = await hasAccessToOrg(ctx, args?.orgId);
@@ -96,10 +105,6 @@ export const getFiles = query({
     }
 
     if (args.filterForFavorite) {
-      if (!user) {
-        return [];
-      }
-
       const favorites = await ctx.db
         .query("favorites")
         .withIndex("by_userId_orgId_fileId", (q) =>
@@ -109,6 +114,12 @@ export const getFiles = query({
       files = files.filter((file) =>
         favorites.some((favorite) => favorite.fileId === file._id)
       );
+    }
+
+    if (args.deleteOnly) {
+      files = files.filter((file) => file.shouldDelete);
+    } else {
+      files = files.filter((file) => !file.shouldDelete);
     }
 
     return files;
@@ -132,7 +143,45 @@ export const deleteFile = mutation({
       throw new ConvexError("You have no admin access to file");
     }
 
-    await ctx.db.delete(args.fileId);
+    await ctx.db.patch(args.fileId, { shouldDelete: true });
+  },
+});
+
+export const deleteAllFiles = internalMutation({
+  args: {},
+  async handler(ctx, args) {
+    const files = await ctx.db
+      .query("files")
+      .withIndex("by_shouldDelete", (q) => q.eq("shouldDelete", true))
+      .collect();
+
+    await Promise.all(
+      files.map(async (file) => {
+        await ctx.storage.delete(file.fileId);
+        return await ctx.db.delete(file._id);
+      })
+    );
+  },
+});
+
+export const restoreFile = mutation({
+  args: { fileId: v.id("files") },
+  async handler(ctx, args) {
+    const access = await hasAccessToFile(ctx, args.fileId);
+
+    if (!access) {
+      throw new ConvexError("No access to file");
+    }
+
+    const isAdmin =
+      access.user.orgIds.find((org) => org.orgId === access.file.orgId)
+        ?.role === "admin";
+
+    if (!isAdmin) {
+      throw new ConvexError("You have no admin access to file");
+    }
+
+    await ctx.db.patch(args.fileId, { shouldDelete: false });
   },
 });
 
