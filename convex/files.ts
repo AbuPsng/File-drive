@@ -8,7 +8,7 @@ import {
 } from "./_generated/server";
 import { getUser } from "./users";
 import { fileTypes } from "./schema";
-import { Id } from "./_generated/dataModel";
+import { Doc, Id } from "./_generated/dataModel";
 
 export const generateUploadUrl = mutation(async (ctx) => {
   const identity = await ctx.auth.getUserIdentity();
@@ -49,6 +49,16 @@ async function hasAccessToOrg(ctx: QueryCtx | MutationCtx, orgId: string) {
   return { user };
 }
 
+const assertCanDeleteFile = (user: Doc<"users">, file: Doc<"files">) => {
+  const canDelete =
+    user._id === file.userId ||
+    user.orgIds.find((org) => org.orgId === file.orgId)?.role === "admin";
+
+  if (!canDelete) {
+    throw new ConvexError("You have no  access to perform this action on file");
+  }
+};
+
 export const createFile = mutation({
   args: {
     name: v.string(),
@@ -79,6 +89,7 @@ export const getFiles = query({
     query: v.optional(v.string()),
     filterForFavorite: v.optional(v.boolean()),
     deleteOnly: v.optional(v.boolean()),
+    type: v.optional(fileTypes),
   },
   async handler(ctx, args) {
     const hasAccess = await hasAccessToOrg(ctx, args?.orgId);
@@ -122,6 +133,10 @@ export const getFiles = query({
       files = files.filter((file) => !file.shouldDelete);
     }
 
+    if (args.type) {
+      files = files.filter((file) => file.type === args.type);
+    }
+
     return files;
   },
 });
@@ -135,13 +150,7 @@ export const deleteFile = mutation({
       throw new ConvexError("No access to file");
     }
 
-    const isAdmin =
-      access.user.orgIds.find((org) => org.orgId === access.file.orgId)
-        ?.role === "admin";
-
-    if (!isAdmin) {
-      throw new ConvexError("You have no admin access to file");
-    }
+    assertCanDeleteFile(access.user, access.file);
 
     await ctx.db.patch(args.fileId, { shouldDelete: true });
   },
@@ -173,13 +182,7 @@ export const restoreFile = mutation({
       throw new ConvexError("No access to file");
     }
 
-    const isAdmin =
-      access.user.orgIds.find((org) => org.orgId === access.file.orgId)
-        ?.role === "admin";
-
-    if (!isAdmin) {
-      throw new ConvexError("You have no admin access to file");
-    }
+    assertCanDeleteFile(access.user, access.file);
 
     await ctx.db.patch(args.fileId, { shouldDelete: false });
   },

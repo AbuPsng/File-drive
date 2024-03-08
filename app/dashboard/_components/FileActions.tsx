@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useToast } from "../../../components/ui/use-toast";
 import { useState } from "react";
@@ -43,6 +43,7 @@ export const FileActions = ({
   const handleDeleteFile = useMutation(api.files.deleteFile);
   const handleToggleFavorite = useMutation(api.files.toggleFavorite);
   const handleRestoreFile = useMutation(api.files.restoreFile);
+  const me = useQuery(api.users.getMe);
 
   function getFileUrl(fileId: Id<"_storage">): string {
     return `${process.env.NEXT_PUBLIC_CONVEX_URL}/api/storage/${fileId}`;
@@ -117,7 +118,12 @@ export const FileActions = ({
             )}
           </DropdownMenuItem>
 
-          <Protect role={"org:admin"} fallback={<></>}>
+          <Protect
+            condition={(check) =>
+              check({ role: "org:admin" }) || file.userId === me?._id
+            }
+            fallback={<></>}
+          >
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => setIsConfirmOpen((val) => !val)}
