@@ -1,6 +1,7 @@
 import {
   OrganizationSwitcher,
   SignInButton,
+  SignedIn,
   SignedOut,
   UserButton,
 } from "@clerk/nextjs";
@@ -11,7 +12,7 @@ import Link from "next/link";
 
 const Header = () => {
   return (
-    <div className="border-b py-4 bg-gray-50">
+    <div className="border-b relative z-10 py-4 bg-gray-50">
       <div className="items-center container flex mx-auto justify-between">
         <Link href={"/"} className="flex gap-2 items-center">
           <Image
@@ -22,9 +23,11 @@ const Header = () => {
           />
           FileDrive
         </Link>
-        <Button variant={"outline"}>
-          <Link href={"/dashboard/files"}>Your Files</Link>
-        </Button>
+        <SignedIn>
+          <Button variant={"outline"}>
+            <Link href={"/dashboard/files"}>Your Files</Link>
+          </Button>
+        </SignedIn>
         <div className="flex gap-2">
           <OrganizationSwitcher />
           <UserButton />
