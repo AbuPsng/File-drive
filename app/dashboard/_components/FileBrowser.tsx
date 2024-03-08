@@ -8,7 +8,10 @@ import FileCard from "@/app/dashboard/_components/FileCard";
 import SearchBar from "@/app/dashboard/_components/SearchBar";
 import { useState } from "react";
 import EmptyState from "@/app/dashboard/_components/EmptyState";
-import { Loader2 } from "lucide-react";
+import { Grid2X2Icon, GridIcon, Loader2, RowsIcon } from "lucide-react";
+import { DataTable } from "./FileTable";
+import { columns } from "./Columns";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function FileBrowser({
   title,
@@ -39,34 +42,53 @@ export default function FileBrowser({
     orgId ? { orgId } : "skip"
   );
 
+  const modifiedFiles =
+    files?.map((file) => ({
+      ...file,
+      isFavorited: (favorites ?? []).some(
+        (favorite) => favorite.fileId === file._id
+      ),
+    })) ?? [];
+
   return (
     <div>
       <div className="w-full">
-        {files === undefined || files === null ? (
-          <div className="flex flex-col gap-8 justify-between items-center pt-40 mb-8 text-gray-500">
-            <Loader2 className="w-32 h-32 animate-spin" />
-            <div>Loading...</div>
-          </div>
-        ) : files?.length < 1 ? (
-          <EmptyState page={title} />
-        ) : (
-          <>
-            <div className="flex justify-between items-center mb-8">
-              <h1 className="text-4xl font-bold ">{title}</h1>
-              <SearchBar setQuery={setQuery} query={query} />
-              <UploadButton />
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold ">{title}</h1>
+          <SearchBar setQuery={setQuery} query={query} />
+          <UploadButton />
+        </div>
+        <Tabs defaultValue="grid">
+          <TabsList className=" mb-4">
+            <TabsTrigger value="grid" className="flex gap-2 items-center">
+              <Grid2X2Icon className="w-4 h-4" /> Grid
+            </TabsTrigger>
+            <TabsTrigger value="table" className="flex gap-2 items-center">
+              <RowsIcon className="w-4 h-4" /> table
+            </TabsTrigger>
+          </TabsList>
+          {files === undefined || files === null ? (
+            <div className="flex flex-col gap-8 justify-between items-center pt-40 mb-8 text-gray-500">
+              <Loader2 className="w-32 h-32 animate-spin" />
+              <div>Loading...</div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              {files?.map((file) => (
-                <FileCard
-                  favorites={favorites ?? []}
-                  key={file._id}
-                  file={file}
-                />
-              ))}
-            </div>
-          </>
-        )}
+          ) : files?.length < 1 ? (
+            <EmptyState page={title} />
+          ) : (
+            <>
+              <TabsContent value="grid">
+                <div className="grid grid-cols-3 gap-4">
+                  {modifiedFiles?.map((file) => (
+                    <FileCard key={file._id} file={file} />
+                  ))}
+                </div>
+              </TabsContent>
+              <TabsContent value="table">
+                <DataTable columns={columns} data={modifiedFiles} />
+              </TabsContent>
+            </>
+          )}
+        </Tabs>
       </div>
     </div>
   );
