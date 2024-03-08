@@ -89,7 +89,6 @@ export default function FileBrowser({
             <div className="flex gap-2 items-center">
               <Label htmlFor="type-select">Type Filter</Label>
               <Select
-                id="type-select"
                 value={type}
                 onValueChange={(newType) => {
                   setType(newType as any);
